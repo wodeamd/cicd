@@ -1,0 +1,215 @@
+{
+    "kind": "Template",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "ms-app",
+        "annotations": {
+            "description": "An example to demonstrate how to deploy micro-service applicaiton on ESDP",
+            "iconClass": "icon-java",
+            "tags": "quickstart,java,ms-app"
+        }
+    },
+    "objects": [
+        {
+            "kind": "Service",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${FRONTEND}",
+                "annotations": {
+                    "description": "Exposes and load balances frontend pods"
+                }
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "web",
+                        "port": 8070,
+                        "targetPort": 8070
+                    }
+                ],
+                "selector": {
+                    "name": "${FRONTEND}"
+                }
+            }
+        },
+        {
+            "kind": "Route",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${FRONTEND}"
+            },
+            "spec": {
+                "host": "${APPLICATION_DOMAIN}",
+                "to": {
+                    "kind": "Service",
+                    "name": "${FRONTEND}"
+                }
+            }
+        },
+        {
+            "kind": "ImageStream",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${FRONTEND}",
+                "annotations": {
+                    "description": "Keeps track of changes in the application image"
+                }
+            }
+        },
+        {
+            "kind": "DeploymentConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${FRONTEND}",
+                "annotations": {
+                    "description": "Defines how to deploy the application server"
+                }
+            },
+            "spec": {
+                "strategy": {
+                    "type": "Rolling"
+                },
+                "triggers": [
+                    {
+                        "type": "ConfigChange"
+                    }
+                ],
+                "replicas": 1,
+                "selector": {
+                    "name": "${FRONTEND}"
+                },
+                "template": {
+                    "metadata": {
+                        "name": "${FRONTEND}",
+                        "labels": {
+                            "name": "${FRONTEND}"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "ms-frontend",
+                                "image": "wodeamd/ms-frontend:latest",
+                                "ports": [
+                                    {
+                                        "containerPort": 8070
+                                    }
+                                ],
+                                "env": [
+                                    {
+                                        "name": "WORKER",
+                                        "value": "${BACKEND}"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+		{
+            "kind": "Service",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${BACKEND}",
+                "annotations": {
+                    "description": "Exposes and load balances backend pods"
+                }
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "web",
+                        "port": 8070,
+                        "targetPort": 8070
+                    }
+                ],
+                "selector": {
+                    "name": "${BACKEND}"
+                }
+            }
+        },
+        {
+            "kind": "ImageStream",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${BACKEND}",
+                "annotations": {
+                    "description": "Keeps track of changes in the application image"
+                }
+            }
+        },
+        {
+            "kind": "DeploymentConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${BACKEND}",
+                "annotations": {
+                    "description": "Defines how to deploy the application server"
+                }
+            },
+            "spec": {
+                "strategy": {
+                    "type": "Rolling"
+                },
+                "triggers": [
+                    {
+                        "type": "ConfigChange"
+                    }
+                ],
+                "replicas": 1,
+                "selector": {
+                    "name": "${BACKEND}"
+                },
+                "template": {
+                    "metadata": {
+                        "name": "${BACKEND}",
+                        "labels": {
+                            "name": "${BACKEND}"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "ms-backend",
+                                "image": "wodeamd/ms-backend:latest",
+                                "ports": [
+                                    {
+                                        "containerPort": 8070
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+       
+    ],
+    "parameters": [
+        {
+            "name": "FRONTEND",
+            "displayName": "Frontend",
+            "description": "The name assigned to all of the frontend objects defined in this template.",
+            "value": "ms-frontend",
+            "required": true
+        },
+        {
+            "name": "APPLICATION_DOMAIN",
+            "displayName": "Application Hostname",
+            "description": "The exposed hostname that will route to ms-frontend service, if left blank a value will be defaulted.",
+            "value": "ms-app.172.16.50.136.fxos"
+        },
+        {
+            "name": "BACKEND",
+            "displayName": "Backend",
+            "description": "The name of the ms-backend.",
+            "value": "ms-backend",
+            "required": true
+        }
+        
+    ],
+    "labels": {
+        "template": "ms-app"
+    }
+}

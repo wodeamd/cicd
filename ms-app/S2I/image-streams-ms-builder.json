@@ -1,0 +1,45 @@
+{
+  "kind": "ImageStream",
+  "apiVersion": "v1",
+  "metadata": {
+	"name": "ms-builder",
+	"annotations": {
+	  "openshift.io/display-name": "MSBuilder"
+	}
+  },
+  "spec": {
+	"tags": [
+	  {
+		"name": "latest",
+		"annotations": {
+		  "openshift.io/display-name": "MSBuilder (Latest)",
+		   "description": "Build and run java miscroservice applications on CentOS 7. ",
+		  "iconClass": "icon-wildfly",
+		  "tags": "builder,wildfly,java",
+		  "supports": "java",
+		  "sampleRepo": "https://github.com/wodeamd/ms-frontend.git"
+		},
+		"from": {
+		  "kind": "ImageStreamTag",
+		  "name": "1.0"
+		}
+	  },
+	  {
+		"name": "1.0",
+		"annotations": {
+		  "openshift.io/display-name": "MSBuilder 1.0",
+		  "description": "Build and run java miscroservice applications on CentOS 7. ",
+		  "iconClass": "icon-wildfly",
+		  "tags": "builder,wildfly,java",
+		  "supports": "java",
+		  "version": "1.0",
+		  "sampleRepo": "https://github.com/wodeamd/ms-frontend.git"
+		},
+		"from": {
+		  "kind": "DockerImage",
+		  "name": "wodeamd/ms-builder-centos7-java8:latest"
+		}
+	  }
+	]
+  }
+}

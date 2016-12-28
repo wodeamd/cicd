@@ -1,0 +1,275 @@
+{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "myphp-pipeline-example",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "This example showcases the new Jenkins Pipeline integration in ESDP, which performs continuous integration and deployment right on the platform. The template contains a Jenkinsfile - a definition of a multi-stage CI/CD process - that leverages the underlying OpenShift platform for dynamic and scalable builds. OpenShift integrates the status of your pipeline builds into the web console allowing you to see your entire application lifecycle in a single view.",
+      "iconClass": "icon-jenkins",
+      "tags": "instant-app,jenkins"
+    }
+  },
+  "message": "A Jenkins server will be automatically instantiated in this project to manage the Pipeline BuildConfig created by this template.  You will be able to log in to it using your OpenShift user credentials.",
+  "objects": [
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "myphp-pipeline",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "sample-pipeline"
+        },
+        "annotations": {
+          "pipeline.alpha.openshift.io/uses": "[{\"name\": \"${NAME}\", \"namespace\": \"\", \"kind\": \"DeploymentConfig\"}]"
+        }
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "secret101"
+            }
+          },
+          {
+            "type": "Generic",
+            "generic": {
+              "secret": "secret101"
+            }
+          }
+        ],
+        "strategy": {
+          "type": "JenkinsPipeline",
+          "jenkinsPipelineStrategy": {
+            "jenkinsfile": "node {\nstage 'build'\nopenshiftBuild(buildConfig: '${NAME}', showBuildLogs: 'true')\nstage 'deploy'\nopenshiftDeploy(deploymentConfig: '${NAME}')\n}"
+          }
+        }
+      }
+    },
+      {
+        "kind": "Service",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}"
+        },
+        "spec": {
+          "ports": [
+            {
+              "name": "web",
+              "port": 8080,
+              "targetPort": 8080
+            }
+          ],
+          "selector": {
+            "name": "${NAME}"
+          }
+        }
+      },
+      {
+        "kind": "Route",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}"
+        },
+        "spec": {
+          "host": "${APPLICATION_DOMAIN}",
+          "to": {
+            "kind": "Service",
+            "name": "${NAME}"
+          }
+        }
+      },
+      {
+        "kind": "ImageStream",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}",
+          "annotations": {
+            "description": "Keeps track of changes in the application image"
+          }
+        }
+      },
+      {
+        "kind": "BuildConfig",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}",
+          "annotations": {
+            "description": "Defines how to build the application"
+          }
+        },
+        "spec": {
+          "source": {
+            "type": "Git",
+            "git": {
+              "uri": "${SOURCE_REPOSITORY_URL}",
+              "ref": "${SOURCE_REPOSITORY_REF}"
+            },
+            "contextDir": "${CONTEXT_DIR}"
+          },
+          "strategy": {
+            "type": "Source",
+            "sourceStrategy": {
+              "from": {
+                "kind": "ImageStreamTag",
+                "namespace": "${NAMESPACE}",
+                "name": "php:5.6"
+              }
+            }
+          },
+          "output": {
+            "to": {
+              "kind": "ImageStreamTag",
+              "name": "${NAME}:latest"
+            }
+          },
+          "triggers": [
+            {
+              "type": "GitHub",
+              "github": {
+                "secret": "${GITHUB_WEBHOOK_SECRET}"
+              }
+            },
+            {
+              "type": "Generic",
+              "generic": {
+                "secret": "${GENERIC_WEBHOOK_SECRET}"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "DeploymentConfig",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}",
+          "annotations": {
+            "description": "Defines how to deploy the application server"
+          }
+        },
+        "spec": {
+          "strategy": {
+            "type": "Rolling"
+          },
+          "triggers": [
+            {
+              "type": "ImageChange",
+              "imageChangeParams": {
+                "automatic": false,
+                "containerNames": [
+                  "myphp"
+                ],
+                "from": {
+                  "kind": "ImageStreamTag",
+                  "name": "${NAME}:latest"
+                }
+              }
+            },		  
+            {
+              "type": "ConfigChange"
+            }
+          ],
+          "replicas": 1,
+          "selector": {
+            "name": "${NAME}"
+          },
+          "template": {
+            "metadata": {
+              "name": "${NAME}",
+              "labels": {
+                "name": "${NAME}"
+              }
+            },
+            "spec": {
+              "containers": [
+                {
+                  "name": "myphp",
+                  "image": " ",
+                  "ports": [
+                    {
+                      "containerPort": 8080
+                    }
+                  ],
+                  "readinessProbe": {
+                    "timeoutSeconds": 3,
+                    "initialDelaySeconds": 3,
+                    "httpGet": {
+                      "path": "/index.php",
+                      "port": 8080
+                    }
+                  },
+                  "livenessProbe": {
+                      "timeoutSeconds": 3,
+                      "initialDelaySeconds": 30,
+                      "httpGet": {
+                          "path": "/index.php",
+                          "port": 8080
+                      }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }      
+    ],
+  "parameters": [
+      {
+        "name": "NAME",
+        "displayName": "Name",
+        "description": "The name assigned to all of the frontend objects defined in this template.",
+        "required": true,
+        "value": "myphp"
+      },
+      {
+        "name": "APPLICATION_DOMAIN",
+        "displayName": "Application Hostname",
+        "description": "The exposed hostname that will route to the myphp service, if left blank a value will be defaulted.",
+        "value": "myphp.pipelinesample"
+      },
+      {
+        "name": "SOURCE_REPOSITORY_URL",
+        "displayName": "Git Repository URL",
+        "description": "The URL of the repository with your application source code.",
+        "required": true,
+        "value": "https://github.com/wodeamd/myphp.git"
+      },	  
+      {
+        "name": "SOURCE_REPOSITORY_REF",
+        "displayName": "Git Reference",
+        "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+      },
+      {
+        "name": "CONTEXT_DIR",
+        "displayName": "Context Directory",
+        "description": "Set this to the relative path to your project if it is not in the root of your repository."
+      },
+      {
+        "name": "GITHUB_WEBHOOK_SECRET",
+        "displayName": "GitHub Webhook Secret",
+        "description": "A secret string used to configure the GitHub webhook.",
+        "generate": "expression",
+        "from": "[a-zA-Z0-9]{40}"
+      },
+      {
+        "name": "GENERIC_WEBHOOK_SECRET",
+        "displayName": "Generic Webhook Secret",
+        "description": "A secret string used to configure the Generic webhook.",
+        "generate": "expression",
+        "from": "[a-zA-Z0-9]{40}"
+      },
+      {
+        "name": "NAMESPACE",
+        "displayName": "Namespace",
+        "description": "The OpenShift Namespace where the NodeJS and MongoDB ImageStreams reside.",
+        "required": true,
+        "value": "openshift"
+      }
+  ],
+  "labels": {
+    "template": "application-template-sample-pipeline"
+  }
+}
