@@ -1,0 +1,151 @@
+{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "myphp-prod-deploy",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "Deploy myphp to production environment",
+      "iconClass": "icon-jenkins",
+      "tags": "instant-app,jenkins"
+    }
+  },
+  "message": "Deploy myphp",
+  "objects": [
+    {
+        "kind": "Service",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}"
+        },
+        "spec": {
+          "ports": [
+            {
+              "name": "web",
+              "port": 8080,
+              "targetPort": 8080
+            }
+          ],
+          "selector": {
+            "name": "${NAME}"
+          }
+        }
+      },
+      {
+        "kind": "Route",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}"
+        },
+        "spec": {
+          "host": "${APPLICATION_DOMAIN}",
+          "to": {
+            "kind": "Service",
+            "name": "${NAME}"
+          }
+        }
+      },
+      {
+        "kind": "ImageStream",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}",
+          "annotations": {
+            "description": "Keeps track of changes in the application image"
+          }
+        }
+      },
+      {
+        "kind": "DeploymentConfig",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}",
+          "annotations": {
+            "description": "Defines how to deploy the application server"
+          }
+        },
+        "spec": {
+          "strategy": {
+            "type": "Rolling"
+          },
+          "triggers": [
+            {
+              "type": "ImageChange",
+              "imageChangeParams": {
+                "automatic": false,
+                "containerNames": [
+                  "myphp"
+                ],
+                "from": {
+                  "kind": "ImageStreamTag",
+                  "name": "${NAME}:latest"
+                }
+              }
+            },		  
+            {
+              "type": "ConfigChange"
+            }
+          ],
+          "replicas": 1,
+          "selector": {
+            "name": "${NAME}"
+          },
+          "template": {
+            "metadata": {
+              "name": "${NAME}",
+              "labels": {
+                "name": "${NAME}"
+              }
+            },
+            "spec": {
+              "containers": [
+                {
+                  "name": "myphp",
+                  "image": " ",
+                  "ports": [
+                    {
+                      "containerPort": 8080
+                    }
+                  ],
+                  "readinessProbe": {
+                    "timeoutSeconds": 3,
+                    "initialDelaySeconds": 3,
+                    "httpGet": {
+                      "path": "/index.php",
+                      "port": 8080
+                    }
+                  },
+                  "livenessProbe": {
+                      "timeoutSeconds": 3,
+                      "initialDelaySeconds": 30,
+                      "httpGet": {
+                          "path": "/index.php",
+                          "port": 8080
+                      }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }      
+    ],
+  "parameters": [
+      {
+        "name": "NAME",
+        "displayName": "Name",
+        "description": "The name assigned to all of the frontend objects defined in this template.",
+        "required": true,
+        "value": "myphp"
+      },
+      {
+        "name": "APPLICATION_DOMAIN",
+        "displayName": "Application Hostname",
+        "description": "The exposed hostname that will route to the myphp service, if left blank a value will be defaulted.",
+        "value": "myphp.pipelinesample.prod"
+      }
+  ],
+  "labels": {
+    "template": "application-template-sample-pipeline"
+  }
+}

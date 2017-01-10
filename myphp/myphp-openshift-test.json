@@ -2,53 +2,17 @@
   "kind": "Template",
   "apiVersion": "v1",
   "metadata": {
-    "name": "myphp-pipeline-example",
+    "name": "myphp-test-deploy",
     "creationTimestamp": null,
     "annotations": {
-      "description": "This example showcases the new Jenkins Pipeline integration in ESDP, which performs continuous integration and deployment right on the platform. The template contains a Jenkinsfile - a definition of a multi-stage CI/CD process - that leverages the underlying OpenShift platform for dynamic and scalable builds. OpenShift integrates the status of your pipeline builds into the web console allowing you to see your entire application lifecycle in a single view.",
+      "description": "Deploy myphp to test environment",
       "iconClass": "icon-jenkins",
       "tags": "instant-app,jenkins"
     }
   },
-  "message": "A Jenkins server will be automatically instantiated in this project to manage the Pipeline BuildConfig created by this template.  You will be able to log in to it using your OpenShift user credentials.",
+  "message": "Deploy myphp",
   "objects": [
     {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "myphp-pipeline",
-        "creationTimestamp": null,
-        "labels": {
-          "name": "sample-pipeline"
-        },
-        "annotations": {
-          "pipeline.alpha.openshift.io/uses": "[{\"name\": \"${NAME}\", \"namespace\": \"\", \"kind\": \"DeploymentConfig\"}]"
-        }
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "GitHub",
-            "github": {
-              "secret": "secret101"
-            }
-          },
-          {
-            "type": "Generic",
-            "generic": {
-              "secret": "secret101"
-            }
-          }
-        ],
-        "strategy": {
-          "type": "JenkinsPipeline",
-          "jenkinsPipelineStrategy": {
-            "jenkinsfile": "node {\nstage 'build'\nopenshiftBuild(buildConfig: '${NAME}', showBuildLogs: 'true')\nstage 'deploy'\nopenshiftDeploy(deploymentConfig: '${NAME}')\n}"
-          }
-        }
-      }
-    },
-      {
         "kind": "Service",
         "apiVersion": "v1",
         "metadata": {
@@ -228,7 +192,7 @@
         "name": "APPLICATION_DOMAIN",
         "displayName": "Application Hostname",
         "description": "The exposed hostname that will route to the myphp service, if left blank a value will be defaulted.",
-        "value": "myphp.pipelinesample"
+        "value": "myphp.pipelinesample.test"
       },
       {
         "name": "SOURCE_REPOSITORY_URL",
