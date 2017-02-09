@@ -1,0 +1,238 @@
+{
+    "kind": "Template",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "ms-frontend",
+        "annotations": {
+            "description": "An example to demonstrate how to deploy micro-service applicaiton on ESDP",
+            "iconClass": "icon-java",
+            "tags": "quickstart,java,ms-app"
+        }
+    },
+    "objects": [
+        {
+            "kind": "Service",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${NAME}",
+                "annotations": {
+                    "description": "Exposes and load balances frontend pods"
+                }
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "web",
+                        "port": 8070,
+                        "targetPort": 8070
+                    }
+                ],
+                "selector": {
+                    "name": "${NAME}"
+                }
+            }
+        },
+        {
+            "kind": "Route",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${NAME}"
+            },
+            "spec": {
+                "host": "${APPLICATION_DOMAIN}",
+                "to": {
+                    "kind": "Service",
+                    "name": "${NAME}"
+                }
+            }
+        },
+        {
+            "kind": "ImageStream",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${NAME}",
+                "annotations": {
+                    "description": "Keeps track of changes in the application image"
+                }
+            }
+        },
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+			  "name": "${NAME}",
+			  "annotations": {
+				"description": "Defines how to build the application"
+			  }
+			},
+			"spec": {
+			  "source": {
+				"type": "Git",
+				"git": {
+				  "uri": "${SOURCE_REPOSITORY_URL}",
+				  "ref": "${SOURCE_REPOSITORY_REF}"
+				},
+				"contextDir": "${CONTEXT_DIR}"
+			  },
+			  "strategy": {
+				"type": "Source",
+				"sourceStrategy": {
+				  "from": {
+					"kind": "ImageStreamTag",
+					"namespace": "${NAMESPACE}",
+					"name": "ms-builder:latest"
+				  }
+				}
+			  },
+			  "output": {
+				"to": {
+				  "kind": "ImageStreamTag",
+				  "name": "${NAME}:latest"
+				}
+			  },
+			  "triggers": [
+				{
+				  "type": "GitHub",
+				  "github": {
+					"secret": "${GITHUB_WEBHOOK_SECRET}"
+				  }
+				},
+				{
+				  "type": "Generic",
+				  "generic": {
+					"secret": "${GENERIC_WEBHOOK_SECRET}"
+				  }
+				}
+			  ]
+			}
+		},		
+        {
+            "kind": "DeploymentConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${NAME}",
+                "annotations": {
+                    "description": "Defines how to deploy the application server"
+                }
+            },
+            "spec": {
+                "strategy": {
+                    "type": "Rolling"
+                },
+                "triggers": [
+                    {
+                        "type": "ImageChange",
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "ms-frontend"
+                            ],
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "${NAME}:latest"
+                            }
+                        }
+                    },
+                    {
+                        "type": "ConfigChange"
+                    }
+                ],
+                "replicas": 1,
+                "selector": {
+                    "name": "${NAME}"
+                },
+                "template": {
+                    "metadata": {
+                        "name": "${NAME}",
+                        "labels": {
+                            "name": "${NAME}"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "ms-frontend",
+                                "image": " ",
+                                "ports": [
+                                    {
+                                        "containerPort": 8070
+                                    }
+                                ],
+                                "env": [
+                                    {
+                                        "name": "WORKER",
+                                        "value": "${BACKEND}"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+       
+    ],
+    "parameters": [
+		{
+			"name": "NAMESPACE",
+			"displayName": "Namespace",
+			"description": "The OpenShift Namespace where the NodeJS and MongoDB ImageStreams reside.",
+			"required": true,
+			"value": "openshift"
+		},	
+		{
+			"name": "SOURCE_REPOSITORY_URL",
+			"displayName": "Git Repository URL",
+			"description": "The URL of the repository with your application source code.",
+			"required": true,
+			"value": "http://172.16.51.58:3000/freddy/ms-frontend.git"
+		},	  
+		{
+			"name": "SOURCE_REPOSITORY_REF",
+			"displayName": "Git Reference",
+			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+		},	
+		{
+			"name": "GITHUB_WEBHOOK_SECRET",
+			"displayName": "GitHub Webhook Secret",
+			"description": "A secret string used to configure the GitHub webhook.",
+			"generate": "expression",
+			"from": "[a-zA-Z0-9]{40}"
+		},
+		{
+			"name": "GENERIC_WEBHOOK_SECRET",
+			"displayName": "Generic Webhook Secret",
+			"description": "A secret string used to configure the Generic webhook.",
+			"generate": "expression",
+			"from": "[a-zA-Z0-9]{40}"
+		},	
+        {
+            "name": "NAME",
+            "displayName": "Frontend",
+            "description": "The name assigned to all of the frontend objects defined in this template.",
+            "value": "ms-frontend",
+            "required": true
+        },
+        {
+            "name": "APPLICATION_DOMAIN",
+            "displayName": "Application Hostname",
+            "description": "The exposed hostname that will route to ms-frontend service, if left blank a value will be defaulted.",
+            "value": "ms-app.172.16.51.47.prod"
+        },
+		{
+			"name": "CONTEXT_DIR",
+			"displayName": "Context Directory",
+			"description": "Set this to the relative path to your project if it is not in the root of your repository."
+		},
+        {
+            "name": "BACKEND",
+            "displayName": "Backend name",
+            "description": "The name for backend service",
+            "value": "ms-backend",
+            "required": true
+        }         
+    ],
+    "labels": {
+        "template": "ms-front"
+    }
+}
