@@ -43,7 +43,7 @@
         "strategy": {
           "type": "JenkinsPipeline",
           "jenkinsPipelineStrategy": {
-            "jenkinsfile": "node {\nstage 'build-test'\nopenshiftBuild(namespace:'ms-test', buildConfig: '${NAME}', showBuildLogs: 'true')\nstage 'deploy-test'\nopenshiftDeploy(namespace:'ms-test', deploymentConfig: '${NAME}')\nstage 'deploy-test-verify'\nopenshiftVerifyService(namespace:'ms-test', serviceName: '${NAME}')\nstage 'image-promotion'\nopenshiftTag(namespace: 'ms-test', sourceStream: '${NAME}', sourceTag: 'latest', destinationStream: '${NAME}', destinationTag: 'latest', destinationNamespace: 'prod')\nstage 'deploy-prod'\nopenshiftDeploy(namespace:'ms-prod', deploymentConfig: '${NAME}')\n}"
+            "jenkinsfile": "node {\nstage 'build-test'\nopenshiftBuild(namespace:'ms-test', buildConfig: '${NAME}', showBuildLogs: 'true')\nstage 'deploy-test'\nopenshiftDeploy(namespace:'ms-test', deploymentConfig: '${NAME}')\nstage 'deploy-test-verify'\nopenshiftVerifyService(namespace:'ms-test', serviceName: '${NAME}')\nstage 'image-promotion'\nopenshiftTag(namespace: 'ms-test', sourceStream: '${NAME}', sourceTag: 'latest', destinationStream: '${NAME}', destinationTag: 'latest', destinationNamespace: 'ms-prod')\nstage 'deploy-prod'\nopenshiftDeploy(namespace:'ms-prod', deploymentConfig: '${NAME}')\n}"
           }
         }
       }
